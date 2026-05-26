@@ -146,6 +146,17 @@ router.get("/status", (_req: Request, res: Response) => {
   res.json(getStatus(config));
 });
 
+// POST /api/scan — preview skills in a directory without saving config
+router.post("/scan", (req: Request, res: Response) => {
+  const { store } = req.body;
+  if (!store) {
+    res.status(400).json({ error: "store required" });
+    return;
+  }
+  const skills = scanSkills(store);
+  res.json({ skills });
+});
+
 // POST /api/init — first-run setup
 router.post("/init", (req: Request, res: Response) => {
   const { store, targets } = req.body;
