@@ -15,7 +15,7 @@ const staticDir = path.join(import.meta.dirname, "..", "web", "dist");
 app.use(express.static(staticDir));
 
 // SPA fallback: non-API routes serve index.html
-app.get("*", (_req, res) => {
+app.get("/{*splat}", (_req, res) => {
   res.sendFile(path.join(staticDir, "index.html"));
 });
 
