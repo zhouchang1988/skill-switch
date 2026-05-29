@@ -24,32 +24,11 @@ export function ToastContainer() {
   }, []);
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 20,
-        right: 20,
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        zIndex: 9999,
-      }}
-    >
+    <div className="toast-stack">
       {toasts.map((t) => (
         <div
           key={t.id}
-          style={{
-            padding: "10px 16px",
-            borderRadius: 8,
-            fontSize: 14,
-            background:
-              t.type === "success"
-                ? "var(--success)"
-                : t.type === "warning"
-                  ? "var(--warning)"
-                  : "var(--error)",
-            color: t.type === "warning" ? "#000" : "#fff",
-          }}
+          className={`toast ${t.type}`}
         >
           {t.text}
         </div>

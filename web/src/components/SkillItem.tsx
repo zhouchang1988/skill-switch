@@ -1,49 +1,32 @@
-import { api } from "../api";
-import { showToast } from "./Toast";
+import { useState } from "react";
+import { SkillModal } from "./SkillModal";
 
 interface Props {
   name: string;
-  inCurrentTheme: boolean;
-  currentTheme: string;
-  onRefresh: () => void;
 }
 
-export function SkillItem({ name, inCurrentTheme, currentTheme, onRefresh }: Props) {
-  const handleToggle = async () => {
-    try {
-      const data = await api.getThemes();
-      const currentSkills = data.themes[currentTheme] || [];
-
-      const newSkills = inCurrentTheme
-        ? currentSkills.filter((s) => s !== name)
-        : [...currentSkills, name];
-
-      await api.updateTheme(currentTheme, { skills: newSkills });
-      showToast("success", inCurrentTheme ? `Removed "${name}"` : `Added "${name}"`);
-      onRefresh();
-    } catch (err: any) {
-      showToast("error", err.message);
-    }
-  };
+export function SkillItem({ name }: Props) {
+  const [showModal, setShowModal] = useState(false);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <span style={{ fontSize: 14 }}>{name}</span>
-      <button
-        className={inCurrentTheme ? "btn-secondary" : "btn-primary"}
-        onClick={handleToggle}
-        style={{ fontSize: 12, padding: "4px 12px" }}
+    <>
+      <div
+        className="skill-row"
       >
-        {inCurrentTheme ? "Remove" : "Add"}
-      </button>
-    </div>
+        <button
+          className="tag clickable"
+          onClick={() => setShowModal(true)}
+          type="button"
+        >
+          {name}
+        </button>
+      </div>
+      {showModal && (
+        <SkillModal
+          dirName={name}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
   );
 }
