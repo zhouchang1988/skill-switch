@@ -1,20 +1,23 @@
 import { useState } from "react";
 import { api } from "../api";
-import type { ConfigResponse } from "../types";
+import type { ConfigResponse, TargetConfig } from "../types";
 import { showToast } from "../components/Toast";
+import { DirPicker } from "../components/DirPicker";
 
 interface Props {
   onComplete: (config: ConfigResponse) => void;
 }
 
 export function Setup({ onComplete }: Props) {
-  const [step, setStep] = useState(1);
   const [store, setStore] = useState("");
+  const [targetPath, setTargetPath] = useState("~/.claude/skills");
   const [previewSkills, setPreviewSkills] = useState<string[]>([]);
-  const [targets, setTargets] = useState<string[]>(["~/.claude/skills"]);
-  const [newTarget, setNewTarget] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [pickerFor, setPickerFor] = useState<"store" | "target" | null>(null);
 
   const handleScan = async () => {
+    if (!store.trim()) return;
+    setScanning(true);
     try {
       const res = await fetch("/api/scan", {
         method: "POST",
@@ -24,136 +27,136 @@ export function Setup({ onComplete }: Props) {
       if (res.ok) {
         const data = await res.json();
         setPreviewSkills(data.skills || []);
-        setStep(2);
       } else {
         const err = await res.json();
-        showToast("error", err.error || "Scan failed");
+        showToast("error", err.error || "扫描失败");
       }
     } catch {
-      showToast("error", "Failed to scan directory");
+      showToast("error", "扫描目录失败");
+    } finally {
+      setScanning(false);
     }
-  };
-
-  const handleAddTarget = () => {
-    if (newTarget.trim()) {
-      setTargets([...targets, newTarget.trim()]);
-      setNewTarget("");
-    }
-  };
-
-  const handleRemoveTarget = (idx: number) => {
-    setTargets(targets.filter((_, i) => i !== idx));
   };
 
   const handleFinish = async () => {
+    if (!store.trim()) return;
+    const targets: TargetConfig[] = targetPath.trim()
+      ? [{ path: targetPath.trim(), theme: "全量" }]
+      : [{ path: "~/.claude/skills", theme: "全量" }];
     try {
       const res = await api.init(store, targets);
-      showToast("success", `Initialized with ${previewSkills.length} skills`);
-      onComplete({ initialized: true, ...res.config });
+      showToast("success", `已初始化，共 ${previewSkills.length} 个技能`);
+      onComplete({ ...res.config, initialized: true });
     } catch (err: any) {
       showToast("error", err.message);
     }
   };
 
+  const handleDirSelect = (dirPath: string) => {
+    if (pickerFor === "store") {
+      setStore(dirPath);
+      setPreviewSkills([]);
+    } else if (pickerFor === "target") {
+      setTargetPath(dirPath);
+    }
+    setPickerFor(null);
+  };
+
   return (
-    <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px" }}>
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>Skill Switch Setup</h1>
-      <p style={{ color: "var(--text-secondary)", marginBottom: 32 }}>
-        Configure your skill store and target directories.
-      </p>
+    <div className="setup-page">
+      <div className="setup-panel">
+        <header className="setup-header">
+          <h1 className="setup-title">Skill Switch</h1>
+          <p className="setup-subtitle">配置技能仓库目录，开始管理不同工具的技能主题。</p>
+        </header>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
-        {[1, 2, 3].map((s) => (
-          <div
-            key={s}
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              background: s <= step ? "var(--accent)" : "var(--bg-tertiary)",
-            }}
-          />
-        ))}
-      </div>
-
-      {step === 1 && (
-        <div className="card">
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Step 1: Skill Store Directory</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>
-            Where are your skill folders stored locally?
-          </p>
-          <input
-            type="text"
-            value={store}
-            onChange={(e) => setStore(e.target.value)}
-            placeholder="e.g. ~/Documents/github-skills"
-            style={{ width: "100%", marginBottom: 16 }}
-          />
-          <button
-            className="btn-primary"
-            onClick={handleScan}
-            disabled={!store.trim()}
-          >
-            Scan Directory
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="card">
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Step 2: Skills Found</h2>
-          {previewSkills.length === 0 ? (
-            <p style={{ color: "var(--warning)" }}>No skills found in this directory.</p>
-          ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-              {previewSkills.map((s) => (
-                <span key={s} className="tag">{s}</span>
-              ))}
+        <div className="form-stack">
+          <section className="card panel-card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title">技能仓库</h2>
+                <p className="section-description">包含所有技能文件夹的目录</p>
+              </div>
             </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn-secondary" onClick={() => setStep(1)}>Back</button>
-            <button className="btn-primary" onClick={() => setStep(3)}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="card">
-          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Step 3: Target Directories</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginBottom: 16 }}>
-            Where should skill symlinks be created?
-          </p>
-          {targets.map((t, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input type="text" value={t} readOnly style={{ flex: 1 }} />
-              <button className="btn-danger" onClick={() => handleRemoveTarget(i)} style={{ padding: "8px 12px" }}>
-                ×
+            <div className="form-stack" style={{ marginTop: 14 }}>
+              <div className="form-row">
+                <input
+                  type="text"
+                  value={store}
+                  onChange={(e) => {
+                    setStore(e.target.value);
+                    setPreviewSkills([]);
+                  }}
+                  placeholder="例如 ~/Documents/github-skills"
+                  onKeyDown={(e) => e.key === "Enter" && handleScan()}
+                />
+                <button className="btn btn-secondary" onClick={() => setPickerFor("store")}>
+                  浏览
+                </button>
+              </div>
+              <button
+                className="btn btn-primary btn-block"
+                onClick={handleScan}
+                disabled={!store.trim() || scanning}
+              >
+                {scanning ? "扫描中..." : "扫描技能"}
               </button>
             </div>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <input
-              type="text"
-              value={newTarget}
-              onChange={(e) => setNewTarget(e.target.value)}
-              placeholder="e.g. ~/.codex/skills"
-              style={{ flex: 1 }}
-              onKeyDown={(e) => e.key === "Enter" && handleAddTarget()}
-            />
-            <button className="btn-secondary" onClick={handleAddTarget}>Add</button>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn-secondary" onClick={() => setStep(2)}>Back</button>
-            <button
-              className="btn-primary"
-              onClick={handleFinish}
-              disabled={targets.length === 0}
-            >
-              Complete Setup
-            </button>
-          </div>
+          </section>
+
+          {previewSkills.length > 0 && (
+            <section className="card panel-card">
+              <div className="card-header">
+                <div>
+                  <h2 className="card-title">发现 {previewSkills.length} 个技能</h2>
+                  <p className="section-description">点击开始使用后会创建默认“全量”主题</p>
+                </div>
+              </div>
+              <div className="tag-list" style={{ marginTop: 14 }}>
+                {previewSkills.map((s) => (
+                  <span key={s} className="tag">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {previewSkills.length > 0 && (
+            <>
+              <section className="card panel-card">
+                <div className="card-header">
+                  <div>
+                    <h2 className="card-title">目标目录</h2>
+                    <p className="section-description">主题切换时会在此目录创建符号链接</p>
+                  </div>
+                </div>
+                <div className="form-row" style={{ marginTop: 14 }}>
+                  <input
+                    type="text"
+                    value={targetPath}
+                    onChange={(e) => setTargetPath(e.target.value)}
+                    placeholder="~/.claude/skills"
+                  />
+                  <button className="btn btn-secondary" onClick={() => setPickerFor("target")}>
+                    浏览
+                  </button>
+                </div>
+              </section>
+
+              <button className="btn btn-primary btn-block" onClick={handleFinish}>
+                开始使用
+              </button>
+            </>
+          )}
         </div>
+      </div>
+
+      {pickerFor && (
+        <DirPicker
+          onSelect={handleDirSelect}
+          onClose={() => setPickerFor(null)}
+        />
       )}
     </div>
   );
