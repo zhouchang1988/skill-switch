@@ -1,4 +1,4 @@
-import type { ConfigResponse, SwitchResult, StatusResult } from "./types";
+import type { ConfigResponse, TargetConfig, SwitchResult, StatusResult, SkillMeta, DirBrowseResult } from "./types";
 
 const BASE = "/api";
 
@@ -25,8 +25,12 @@ export const api = {
 
   getSkills: () => request<string[]>("/skills"),
 
+  getSkillsMeta: () => request<SkillMeta[]>("/skills-meta"),
+
+  getSkillMeta: (name: string) => request<SkillMeta>(`/skills/${encodeURIComponent(name)}`),
+
   getThemes: () =>
-    request<{ currentTheme: string; themes: Record<string, string[]> }>("/themes"),
+    request<{ themes: Record<string, string[]> }>("/themes"),
 
   createTheme: (name: string, skills: string[]) =>
     request<Record<string, string[]>>( "/themes", {
@@ -45,16 +49,22 @@ export const api = {
       method: "DELETE",
     }),
 
-  switchTheme: (theme: string) =>
+  switchTheme: (target: string, theme: string) =>
     request<SwitchResult>("/switch", {
       method: "POST",
-      body: JSON.stringify({ theme }),
+      body: JSON.stringify({ target, theme }),
     }),
 
   getStatus: () => request<StatusResult>("/status"),
 
-  init: (store: string, targets: string[]) =>
-    request<{ config: ConfigResponse; switchResult: SwitchResult }>("/init", {
+  browseDirectory: (path: string) =>
+    request<DirBrowseResult>("/browse", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+
+  init: (store: string, targets: TargetConfig[]) =>
+    request<{ config: ConfigResponse; switchResults: SwitchResult[] }>("/init", {
       method: "POST",
       body: JSON.stringify({ store, targets }),
     }),
