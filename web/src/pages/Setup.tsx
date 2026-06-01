@@ -67,15 +67,15 @@ export function Setup({ onComplete }: Props) {
       <div className="setup-panel">
         <header className="setup-header">
           <h1 className="setup-title">Skill Switch</h1>
-          <p className="setup-subtitle">配置技能仓库目录，开始管理不同工具的技能主题。</p>
+          <p className="setup-subtitle">选择技能源目录，为不同工具配置专属技能组合。</p>
         </header>
 
         <div className="form-stack">
           <section className="card panel-card">
             <div className="card-header">
               <div>
-                <h2 className="card-title">技能仓库</h2>
-                <p className="section-description">包含所有技能文件夹的目录</p>
+                <h2 className="card-title">技能库目录</h2>
+                <p className="section-description">存放所有技能文件的地方，比如你从 GitHub 下载的技能。</p>
               </div>
             </div>
             <div className="form-stack" style={{ marginTop: 14 }}>
@@ -87,7 +87,7 @@ export function Setup({ onComplete }: Props) {
                     setStore(e.target.value);
                     setPreviewSkills([]);
                   }}
-                  placeholder="例如 ~/Documents/github-skills"
+                  placeholder="例如 ~/Documents/skills"
                   onKeyDown={(e) => e.key === "Enter" && handleScan()}
                 />
                 <button className="btn btn-secondary" onClick={() => setPickerFor("store")}>
@@ -109,7 +109,7 @@ export function Setup({ onComplete }: Props) {
               <div className="card-header">
                 <div>
                   <h2 className="card-title">发现 {previewSkills.length} 个技能</h2>
-                  <p className="section-description">点击开始使用后会创建默认“全量”主题</p>
+                  <p className="section-description">将创建"完整版"技能组合，包含以下所有技能</p>
                 </div>
               </div>
               <div className="tag-list" style={{ marginTop: 14 }}>
@@ -127,8 +127,8 @@ export function Setup({ onComplete }: Props) {
               <section className="card panel-card">
                 <div className="card-header">
                   <div>
-                    <h2 className="card-title">目标目录</h2>
-                    <p className="section-description">主题切换时会在此目录创建符号链接</p>
+                    <h2 className="card-title">工具目录</h2>
+                    <p className="section-description">Claude Code、OpenCode 等工具读取技能的位置。如果不确定，使用默认值即可。</p>
                   </div>
                 </div>
                 <div className="form-row" style={{ marginTop: 14 }}>
