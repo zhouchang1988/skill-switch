@@ -45,3 +45,4 @@ coverage/
 *.tgz
 .cache/
 .code-review-graph/
+.playwright-mcp/
