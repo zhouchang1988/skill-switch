@@ -4,6 +4,7 @@ import type { ConfigResponse, StatusResult } from "../types";
 import { showToast } from "../components/Toast";
 import { DirPicker } from "../components/DirPicker";
 import { SkillModal } from "../components/SkillModal";
+import { SkillListModal } from "../components/SkillListModal";
 
 interface Props {
   config: ConfigResponse;
@@ -25,9 +26,12 @@ export function Dashboard({ config, onRefresh }: Props) {
   const [editTargetPath, setEditTargetPath] = useState("");
   const [editingStore, setEditingStore] = useState(false);
   const [editStorePath, setEditStorePath] = useState("");
-  const [pickerFor, setPickerFor] = useState<"store" | "newTarget" | "editTarget" | null>(null);
-  const [viewingSkill, setViewingSkill] = useState<string | null>(null);
-  const [storeExpanded, setStoreExpanded] = useState(false);
+const [pickerFor, setPickerFor] = useState<"store" | "newTarget" | "editTarget" | null>(null);
+const [viewingSkill, setViewingSkill] = useState<string | null>(null);
+const [storeExpanded, setStoreExpanded] = useState(false);
+const [targetsExpanded, setTargetsExpanded] = useState(true);
+const [themesExpanded, setThemesExpanded] = useState(true);
+const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills: string[] } | null>(null);
 
   useEffect(() => {
     if (config.initialized) {
@@ -202,15 +206,13 @@ export function Dashboard({ config, onRefresh }: Props) {
     <div className="dashboard">
       {/* Section 1: Store - Collapsible */}
       <section className="store-card">
-        <div 
-          className="store-card-header"
-          onClick={() => setStoreExpanded(!storeExpanded)}
-        >
-          <div>
+        <div className="store-card-header">
+          <div onClick={() => setStoreExpanded(!storeExpanded)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
             <h2 className="store-card-title">技能库</h2>
             <p className="store-card-description">所有技能源文件的存放位置</p>
+            <code className="path-code" style={{ marginTop: 'var(--space-2)', display: 'block', fontSize: '13px' }}>{store}</code>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', position: 'relative', zIndex: 1 }}>
             <span className="skill-count">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -223,6 +225,7 @@ export function Dashboard({ config, onRefresh }: Props) {
                 e.stopPropagation();
                 setEditingStore(true);
                 setEditStorePath(store);
+                setStoreExpanded(true);
               }}
             >
               编辑
@@ -234,9 +237,11 @@ export function Dashboard({ config, onRefresh }: Props) {
               fill="none" 
               stroke="var(--text-muted)" 
               strokeWidth="2"
+              onClick={() => setStoreExpanded(!storeExpanded)}
               style={{ 
                 transform: storeExpanded ? 'rotate(180deg)' : 'rotate(0)',
-                transition: 'transform 0.2s ease'
+                transition: 'transform 0.2s ease',
+                cursor: 'pointer'
               }}
             >
               <polyline points="6 9 12 15 18 9"></polyline>
@@ -291,13 +296,29 @@ export function Dashboard({ config, onRefresh }: Props) {
 
       {/* Section 2: Target Directories - Main Feature */}
       <section className="section">
-        <div className="section-header">
-          <div>
-            <h1 className="section-title">工具目录</h1>
+        <div className="section-header" style={{ cursor: 'pointer' }} onClick={() => setTargetsExpanded(!targetsExpanded)}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <h1 className="section-title">工具目录</h1>
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="var(--text-muted)" 
+                strokeWidth="2"
+                style={{ 
+                  transform: targetsExpanded ? 'rotate(90deg)' : 'rotate(0)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
             <p className="section-subtitle">每个工具目录独立绑定一套技能组合</p>
           </div>
           {!addingTarget ? (
-            <button className="btn btn-primary" onClick={() => setAddingTarget(true)}>
+            <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); setAddingTarget(true); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -305,7 +326,7 @@ export function Dashboard({ config, onRefresh }: Props) {
               添加工具目录
             </button>
           ) : (
-            <div className="inline-form">
+            <div className="inline-form" onClick={(e) => e.stopPropagation()}>
               <input
                 type="text"
                 value={newTargetPath}
@@ -333,20 +354,21 @@ export function Dashboard({ config, onRefresh }: Props) {
           )}
         </div>
 
-        <div className="target-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-          {targets.length === 0 && (
-            <div className="empty-state">
-              <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-              </svg>
-              <div className="empty-state-title">还没有工具目录</div>
-              <div className="empty-state-description">
-                添加工具目录后，可以为每个工具独立配置技能组合
+        {targetsExpanded && (
+          <div className="target-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            {targets.length === 0 && (
+              <div className="empty-state">
+                <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
+                <div className="empty-state-title">还没有工具目录</div>
+                <div className="empty-state-description">
+                  添加工具目录后，可以为每个工具独立配置技能组合
+                </div>
               </div>
-            </div>
-          )}
-          
-          {targets.map((target) => {
+            )}
+            
+            {targets.map((target) => {
             const currentTheme = getTargetTheme(target.path);
             const currentSkills = getTargetSkills(target.path);
             const isEditing = editingTarget === target.path;
@@ -456,18 +478,35 @@ export function Dashboard({ config, onRefresh }: Props) {
               </article>
             );
           })}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Section 3: Themes - Management */}
       <section className="section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">技能组合</h2>
+        <div className="section-header" style={{ cursor: 'pointer' }} onClick={() => setThemesExpanded(!themesExpanded)}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <h2 className="section-title">技能组合</h2>
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="var(--text-muted)" 
+                strokeWidth="2"
+                style={{ 
+                  transform: themesExpanded ? 'rotate(90deg)' : 'rotate(0)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
             <p className="section-subtitle">管理技能组合的名称和包含的技能</p>
           </div>
           {!creating ? (
-            <button className="btn btn-secondary" onClick={() => setCreating(true)}>
+            <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); setCreating(true); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -475,7 +514,7 @@ export function Dashboard({ config, onRefresh }: Props) {
               新建技能组合
             </button>
           ) : (
-            <div className="inline-form">
+            <div className="inline-form" onClick={(e) => e.stopPropagation()}>
               <input
                 type="text"
                 value={newThemeName}
@@ -500,42 +539,49 @@ export function Dashboard({ config, onRefresh }: Props) {
           )}
         </div>
 
-        <div className="theme-grid" style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-          gap: 'var(--space-4)'
-        }}>
-          {/* 全量主题始终显示在第一位 */}
-          {(() => {
-            const isFullTheme = true;
-            const displaySkills = allSkills;
-            const isInUse = targets.some((target) => getTargetTheme(target.path) === "全量");
-            
-            return (
-              <article className="theme-card">
-                <div className="theme-card-header">
-                  <h3 className="theme-card-title">全量</h3>
-                  <span className="badge">自动同步</span>
-                  {isInUse && <span className="badge badge-success">使用中</span>}
-                </div>
-                <div className="theme-card-body">
-                  <div className="theme-card-meta">
-                    <span>{displaySkills.length} 个技能</span>
+        {themesExpanded && (
+          <div className="theme-grid" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: 'var(--space-4)'
+          }}>
+            {/* 全量主题始终显示在第一位 */}
+            {(() => {
+              const isFullTheme = true;
+              const displaySkills = allSkills;
+              const isInUse = targets.some((target) => getTargetTheme(target.path) === "全量");
+              
+              return (
+                <article className="theme-card">
+                  <div className="theme-card-header">
+                    <h3 className="theme-card-title">全量</h3>
+                    <span className="badge">自动同步</span>
+                    {isInUse && <span className="badge badge-success">使用中</span>}
                   </div>
-                  <div className="tag-list tag-list-compact" style={{ marginTop: 'var(--space-3)' }}>
-                    {displaySkills.slice(0, 4).map((skill) => (
-                      <span key={skill} className="tag">
-                        {skill}
-                      </span>
-                    ))}
-                    {displaySkills.length > 4 && (
-                      <span className="tag">+{displaySkills.length - 4}</span>
-                    )}
+                  <div className="theme-card-body">
+                    <div className="theme-card-meta">
+                      <span>{displaySkills.length} 个技能</span>
+                    </div>
+                    <div className="tag-list tag-list-compact" style={{ marginTop: 'var(--space-3)' }}>
+                      {displaySkills.slice(0, 4).map((skill) => (
+                        <span key={skill} className="tag">
+                          {skill}
+                        </span>
+                      ))}
+                      {displaySkills.length > 4 && (
+                        <button 
+                          className="tag" 
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setViewingSkillList({ title: '全量', skills: displaySkills })}
+                        >
+                          +{displaySkills.length - 4}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })()}
+                </article>
+              );
+            })()}
           
           {themeEntries.filter(([name]) => name !== "全量").map(([name, skills]) => {
             const isEditing = editingTheme === name;
@@ -628,7 +674,13 @@ export function Dashboard({ config, onRefresh }: Props) {
                       </span>
                     ))}
                     {skills.length > 4 && (
-                      <span className="tag">+{skills.length - 4}</span>
+                      <button 
+                        className="tag" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setViewingSkillList({ title: name, skills })}
+                      >
+                        +{skills.length - 4}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -643,7 +695,8 @@ export function Dashboard({ config, onRefresh }: Props) {
               </article>
             );
           })}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Modals */}
@@ -658,6 +711,18 @@ export function Dashboard({ config, onRefresh }: Props) {
         <SkillModal
           dirName={viewingSkill}
           onClose={() => setViewingSkill(null)}
+        />
+      )}
+
+      {viewingSkillList && (
+        <SkillListModal
+          title={viewingSkillList.title}
+          skills={viewingSkillList.skills}
+          onClose={() => setViewingSkillList(null)}
+          onViewSkill={(skill) => {
+            setViewingSkillList(null);
+            setViewingSkill(skill);
+          }}
         />
       )}
     </div>

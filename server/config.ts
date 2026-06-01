@@ -66,7 +66,25 @@ export function loadConfig(): Config | null {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
   const config: Config = JSON.parse(raw);
-  return sanitizeConfig(config);
+  const sanitized = sanitizeConfig(config);
+  
+  const currentSkills = scanSkills(sanitized.store);
+  const fullThemeSkills = new Set(sanitized.themes["全量"] || []);
+  let hasNewSkills = false;
+  
+  for (const skill of currentSkills) {
+    if (!fullThemeSkills.has(skill)) {
+      sanitized.themes["全量"] = sanitized.themes["全量"] || [];
+      sanitized.themes["全量"].push(skill);
+      hasNewSkills = true;
+    }
+  }
+  
+  if (hasNewSkills) {
+    saveConfig(sanitized);
+  }
+  
+  return sanitized;
 }
 
 export function saveConfig(config: Config): void {

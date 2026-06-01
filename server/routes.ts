@@ -134,6 +134,18 @@ router.put("/themes/:name", (req: Request, res: Response) => {
     }
   }
   saveConfig(config);
+  
+  const themeToApply = newName && newName !== oldName ? newName : oldName;
+  for (const t of config.targets) {
+    if (t.theme === themeToApply) {
+      try {
+        switchTheme(t.path, themeToApply);
+      } catch (err) {
+        console.error(`Failed to update symlinks for target ${t.path}:`, err);
+      }
+    }
+  }
+  
   res.json(config.themes);
 });
 
@@ -153,11 +165,21 @@ router.delete("/themes/:name", (req: Request, res: Response) => {
     res.status(404).json({ error: "Theme not found" });
     return;
   }
+  const affectedTargets = config.targets.filter(t => t.theme === name);
   delete config.themes[name];
   for (const t of config.targets) {
     if (t.theme === name) t.theme = "全量";
   }
   saveConfig(config);
+  
+  for (const t of affectedTargets) {
+    try {
+      switchTheme(t.path, "全量");
+    } catch (err) {
+      console.error(`Failed to update symlinks for target ${t.path}:`, err);
+    }
+  }
+  
   res.json(config.themes);
 });
 
