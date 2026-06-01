@@ -8,13 +8,13 @@
   },
   "scripts": {
     "dev:server": "tsx watch server/index.ts",
-    "dev:web": "cd web && npm run dev",
+    "dev:web": "lsof -ti:13721 | xargs kill -9 2>/dev/null || true; cd web && npm run dev",
     "build:web": "cd web && npm run build",
     "start": "npm run build:web && tsx server/index.ts"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "express": "^5.2.1"
