@@ -35,7 +35,7 @@ export function SkillModal({ dirName, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-content-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content modal-content-wide" role="dialog" aria-modal="true" aria-label={dirName} onClick={(e) => e.stopPropagation()}>
         {loading ? (
           <div className="modal-body">
             <p className="muted" style={{ textAlign: "center", padding: 24 }}>

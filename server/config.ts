@@ -32,6 +32,10 @@ export interface DirEntry {
 
 export function listDirectory(dirPath: string): { current: string; parent: string | null; entries: DirEntry[] } {
   const expanded = expandPath(dirPath);
+  const home = os.homedir();
+  if (!expanded.startsWith(home) && expanded !== home) {
+    throw new Error("Access restricted to home directory and subdirectories");
+  }
   if (!fs.existsSync(expanded) || !fs.statSync(expanded).isDirectory()) {
     throw new Error(`Directory not found: ${dirPath}`);
   }
@@ -46,7 +50,7 @@ export function listDirectory(dirPath: string): { current: string; parent: strin
     }));
   return {
     current: expanded,
-    parent: expanded !== parent ? parent : null,
+    parent: expanded !== parent && parent.startsWith(home) ? parent : null,
     entries,
   };
 }
@@ -66,25 +70,35 @@ export function loadConfig(): Config | null {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
   const config: Config = JSON.parse(raw);
-  const sanitized = sanitizeConfig(config);
-  
-  const currentSkills = scanSkills(sanitized.store);
-  const fullThemeSkills = new Set(sanitized.themes["全量"] || []);
+  return sanitizeConfig(config);
+}
+
+/**
+ * Scan store for new skills not yet in "全量" theme, add them, and save.
+ * Returns the updated config (or null if no config).
+ * Call explicitly when user expects skill sync (init, manual refresh).
+ */
+export function syncNewSkills(): Config | null {
+  const config = loadConfig();
+  if (!config) return null;
+
+  const currentSkills = scanSkills(config.store);
+  const fullThemeSkills = new Set(config.themes["全量"] || []);
   let hasNewSkills = false;
-  
+
   for (const skill of currentSkills) {
     if (!fullThemeSkills.has(skill)) {
-      sanitized.themes["全量"] = sanitized.themes["全量"] || [];
-      sanitized.themes["全量"].push(skill);
+      config.themes["全量"] = config.themes["全量"] || [];
+      config.themes["全量"].push(skill);
       hasNewSkills = true;
     }
   }
-  
+
   if (hasNewSkills) {
-    saveConfig(sanitized);
+    saveConfig(config);
   }
-  
-  return sanitized;
+
+  return config;
 }
 
 export function saveConfig(config: Config): void {

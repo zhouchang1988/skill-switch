@@ -46,3 +46,4 @@ coverage/
 .cache/
 .code-review-graph/
 .playwright-mcp/
+.omo/

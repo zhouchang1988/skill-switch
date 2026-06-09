@@ -15,7 +15,7 @@ export function HelpModal({ onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-content-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content modal-content-wide" role="dialog" aria-modal="true" aria-label="使用帮助" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">使用帮助</h2>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>

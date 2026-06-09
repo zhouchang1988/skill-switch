@@ -9,17 +9,36 @@ import { HelpModal } from "./components/HelpModal";
 export function App() {
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
-  useEffect(() => {
-    api.getConfig().then((c) => {
-      setConfig(c);
-      setLoading(false);
-    });
-  }, []);
+  const loadConfig = () => {
+    setLoading(true);
+    setError(null);
+    api.getConfig()
+      .then((c) => {
+        setConfig(c);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => { loadConfig(); }, []);
 
   if (loading) {
     return <div className="loading-state">加载中...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="loading-state" style={{ flexDirection: "column", gap: "var(--space-4)" }}>
+        <span style={{ color: "var(--error)" }}>加载失败：{error}</span>
+        <button className="btn btn-primary" onClick={loadConfig}>重试</button>
+      </div>
+    );
   }
 
   if (!config?.initialized) {

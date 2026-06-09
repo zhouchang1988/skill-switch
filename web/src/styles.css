@@ -44,10 +44,10 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
   
-  /* Typography - Claude Fallback Fonts */
-  --font-serif: Georgia, "Times New Roman", serif;
-  --font-sans: Arial, system-ui, sans-serif;
-  --font-mono: Arial, monospace;
+  /* Typography */
+  --font-serif: Georgia, "Noto Serif SC", "Source Han Serif SC", serif;
+  --font-sans: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
   
   /* Spacing */
   --space-1: 4px;
@@ -844,6 +844,17 @@ code {
   gap: var(--space-2);
 }
 
+/* ===== Layout Utilities ===== */
+.flex-1 { flex: 1; min-width: 0; }
+.flex-row { display: flex; align-items: center; gap: var(--space-3); }
+.flex-col { display: flex; flex-direction: column; gap: var(--space-5); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.clickable { cursor: pointer; }
+.collapsible-header { flex: 1; min-width: 0; cursor: pointer; }
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-4); }
+
 /* ===== Button Row ===== */
 .button-row {
   display: flex;
@@ -1178,6 +1189,31 @@ code {
   font-weight: 600;
   pointer-events: auto;
   animation: slideInRight 0.3s ease;
+}
+
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.toast-close:hover {
+  opacity: 1;
 }
 
 .toast-icon {

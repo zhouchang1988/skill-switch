@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { expandPath, loadConfig, saveConfig, type Config } from "./config.js";
+import { expandPath, loadConfig, saveConfig, scanSkills, type Config } from "./config.js";
 
 export interface SwitchResult {
   target: string;
@@ -27,14 +27,15 @@ function listSymlinks(dir: string): string[] {
     .map((d) => d.name);
 }
 
-export function switchTheme(targetPath: string, themeName: string): SwitchResult {
-  const config = loadConfig();
+export function switchTheme(targetPath: string, themeName: string, existingConfig?: Config): SwitchResult {
+  const config = existingConfig ?? loadConfig();
   if (!config) throw new Error("Config not found");
   const skills = config.themes[themeName];
   if (!skills) throw new Error(`Theme "${themeName}" not found`);
 
   const store = expandPath(config.store);
   const target = expandPath(targetPath);
+  const knownSkills = new Set(scanSkills(store));
 
   const result: SwitchResult = {
     target,
@@ -50,6 +51,7 @@ export function switchTheme(targetPath: string, themeName: string): SwitchResult
   }
 
   for (const name of listSymlinks(target)) {
+    if (!knownSkills.has(name)) continue;
     const linkPath = path.join(target, name);
     try {
       fs.unlinkSync(linkPath);

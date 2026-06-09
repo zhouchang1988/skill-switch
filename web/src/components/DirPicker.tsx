@@ -31,7 +31,7 @@ export function DirPicker({ onSelect, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" role="dialog" aria-modal="true" aria-label="选择目录" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">选择目录</h2>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>

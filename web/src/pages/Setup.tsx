@@ -13,33 +13,25 @@ export function Setup({ onComplete }: Props) {
   const [targetPath, setTargetPath] = useState("~/.claude/skills");
   const [previewSkills, setPreviewSkills] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const [pickerFor, setPickerFor] = useState<"store" | "target" | null>(null);
 
   const handleScan = async () => {
     if (!store.trim()) return;
     setScanning(true);
     try {
-      const res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ store }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPreviewSkills(data.skills || []);
-      } else {
-        const err = await res.json();
-        showToast("error", err.error || "扫描失败");
-      }
-    } catch {
-      showToast("error", "扫描目录失败");
+      const data = await api.scanStore(store);
+      setPreviewSkills(data.skills || []);
+    } catch (err: any) {
+      showToast("error", err.message || "扫描失败");
     } finally {
       setScanning(false);
     }
   };
 
   const handleFinish = async () => {
-    if (!store.trim()) return;
+    if (!store.trim() || finishing) return;
+    setFinishing(true);
     const targets: TargetConfig[] = targetPath.trim()
       ? [{ path: targetPath.trim(), theme: "全量" }]
       : [{ path: "~/.claude/skills", theme: "全量" }];
@@ -49,6 +41,8 @@ export function Setup({ onComplete }: Props) {
       onComplete({ ...res.config, initialized: true });
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -144,8 +138,12 @@ export function Setup({ onComplete }: Props) {
                 </div>
               </section>
 
-              <button className="btn btn-primary btn-block" onClick={handleFinish}>
-                开始使用
+              <button
+                className="btn btn-primary btn-block"
+                onClick={handleFinish}
+                disabled={finishing}
+              >
+                {finishing ? "初始化中..." : "开始使用"}
               </button>
             </>
           )}

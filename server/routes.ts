@@ -4,6 +4,7 @@ import {
   loadConfig,
   saveConfig,
   scanSkills,
+  syncNewSkills,
   createDefaultConfig,
   getSkillMeta,
   getAllSkillsMeta,
@@ -20,7 +21,7 @@ router.get("/config", (_req: Request, res: Response) => {
     res.json({ initialized: false });
     return;
   }
-  const config = loadConfig()!;
+  const config = syncNewSkills()!;
   res.json({ initialized: true, ...config });
 });
 
@@ -107,6 +108,12 @@ router.post("/themes", (req: Request, res: Response) => {
     res.status(409).json({ error: "Theme already exists" });
     return;
   }
+  const validSkills = new Set(scanSkills(config.store));
+  const invalid = skills.filter((s: string) => !validSkills.has(s));
+  if (invalid.length > 0) {
+    res.status(400).json({ error: `Unknown skills: ${invalid.join(", ")}` });
+    return;
+  }
   config.themes[name] = skills;
   saveConfig(config);
   res.json(config.themes);
@@ -125,7 +132,15 @@ router.put("/themes/:name", (req: Request, res: Response) => {
     return;
   }
   const { newName, skills } = req.body;
-  if (skills !== undefined) config.themes[oldName] = skills;
+  if (skills !== undefined) {
+    const validSkills = new Set(scanSkills(config.store));
+    const invalid = skills.filter((s: string) => !validSkills.has(s));
+    if (invalid.length > 0) {
+      res.status(400).json({ error: `Unknown skills: ${invalid.join(", ")}` });
+      return;
+    }
+    config.themes[oldName] = skills;
+  }
   if (newName && newName !== oldName) {
     config.themes[newName] = config.themes[oldName];
     delete config.themes[oldName];
@@ -139,7 +154,7 @@ router.put("/themes/:name", (req: Request, res: Response) => {
   for (const t of config.targets) {
     if (t.theme === themeToApply) {
       try {
-        switchTheme(t.path, themeToApply);
+        switchTheme(t.path, themeToApply, config);
       } catch (err) {
         console.error(`Failed to update symlinks for target ${t.path}:`, err);
       }
@@ -174,7 +189,7 @@ router.delete("/themes/:name", (req: Request, res: Response) => {
   
   for (const t of affectedTargets) {
     try {
-      switchTheme(t.path, "全量");
+      switchTheme(t.path, "全量", config);
     } catch (err) {
       console.error(`Failed to update symlinks for target ${t.path}:`, err);
     }
@@ -244,6 +259,6 @@ router.post("/init", (req: Request, res: Response) => {
   const skills = scanSkills(store);
   const config = createDefaultConfig(store, targets, skills);
   saveConfig(config);
-  const results = config.targets.map((t) => switchTheme(t.path, t.theme));
+  const results = config.targets.map((t) => switchTheme(t.path, t.theme, config));
   res.json({ config, switchResults: results });
 });

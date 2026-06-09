@@ -5,7 +5,7 @@ import { router } from "./routes.js";
 const PORT = 13722;
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 // API routes
 app.use("/api", router);

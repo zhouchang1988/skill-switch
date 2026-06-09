@@ -18,7 +18,7 @@ export function SkillListModal({ title, skills, onClose, onViewSkill }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" role="dialog" aria-modal="true" aria-label={`${title} - 全部技能`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title} - 全部技能</h2>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>

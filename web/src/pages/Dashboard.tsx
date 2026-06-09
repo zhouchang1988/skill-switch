@@ -32,11 +32,16 @@ const [storeExpanded, setStoreExpanded] = useState(false);
 const [targetsExpanded, setTargetsExpanded] = useState(true);
 const [themesExpanded, setThemesExpanded] = useState(true);
 const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills: string[] } | null>(null);
+const [statusLoading, setStatusLoading] = useState(true);
+const [skillsLoading, setSkillsLoading] = useState(true);
+const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (config.initialized) {
-      api.getStatus().then(setStatus).catch(() => {});
-      api.getSkills().then(setAllSkills).catch(() => {});
+      setStatusLoading(true);
+      setSkillsLoading(true);
+      api.getStatus().then(setStatus).catch((err) => showToast("error", `加载状态失败: ${err.message}`)).finally(() => setStatusLoading(false));
+      api.getSkills().then(setAllSkills).catch((err) => showToast("error", `加载技能列表失败: ${err.message}`)).finally(() => setSkillsLoading(false));
     }
   }, [config.initialized]);
 
@@ -46,18 +51,24 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
   const store = config.store || "";
 
   const handleSwitch = async (targetPath: string, theme: string) => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.switchTheme(targetPath, theme);
       showToast("success", `已切换到「${theme}」技能组合`);
       onRefresh();
-      api.getStatus().then(setStatus).catch(() => {});
+      api.getStatus().then(setStatus).catch((err) => showToast("error", err.message));
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSaveStore = async () => {
     if (!editStorePath.trim()) return;
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.updateConfig({ store: editStorePath.trim() });
       showToast("success", "技能库路径已更新");
@@ -65,12 +76,16 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleAddTarget = async () => {
     if (!newTargetPath.trim()) return;
+    if (submitting) return;
     const newTargets = [...targets, { path: newTargetPath.trim(), theme: "全量" }];
+    setSubmitting(true);
     try {
       await api.updateConfig({ targets: newTargets });
       showToast("success", "工具目录已添加");
@@ -79,11 +94,13 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleRemoveTarget = async (targetPath: string) => {
-    if (!confirm(`确认删除工具目录「${targetPath}」？`)) return;
+    if (!window.confirm(`确认删除工具目录「${targetPath}」？此操作不可撤销。`)) return;
     const newTargets = targets.filter((t) => t.path !== targetPath);
     try {
       await api.updateConfig({ targets: newTargets });
@@ -104,9 +121,11 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       setEditingTarget(null);
       return;
     }
+    if (submitting) return;
     const newTargets = targets.map((t) =>
       t.path === oldPath ? { ...t, path: editTargetPath.trim() } : t
     );
+    setSubmitting(true);
     try {
       await api.updateConfig({ targets: newTargets });
       showToast("success", "工具目录已更新");
@@ -114,6 +133,8 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -123,6 +144,8 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       showToast("error", "「全量」是保留名称，用于自动同步所有技能");
       return;
     }
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.createTheme(newThemeName.trim(), []);
       showToast("success", `技能组合「${newThemeName}」已创建`);
@@ -131,6 +154,8 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -143,6 +168,8 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
 
   const handleSaveEdit = async () => {
     if (!editingTheme) return;
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const data: { newName?: string; skills?: string[] } = {};
       if (editName !== editingTheme) data.newName = editName;
@@ -153,17 +180,23 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`确认删除技能组合「${name}」？`)) return;
+    if (!window.confirm(`确认删除技能组合「${name}」？此操作不可撤销。`)) return;
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.deleteTheme(name);
       showToast("success", `技能组合「${name}」已删除`);
       onRefresh();
     } catch (err: any) {
       showToast("error", err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -207,12 +240,12 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
       {/* Section 1: Store - Collapsible */}
       <section className="store-card">
         <div className="store-card-header">
-          <div onClick={() => setStoreExpanded(!storeExpanded)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+          <div role="button" tabIndex={0} onClick={() => setStoreExpanded(!storeExpanded)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStoreExpanded(!storeExpanded); } }} className="collapsible-header">
             <h2 className="store-card-title">技能库</h2>
             <p className="store-card-description">所有技能源文件的存放位置</p>
-            <code className="path-code" style={{ marginTop: 'var(--space-2)', display: 'block', fontSize: '13px' }}>{store}</code>
+            <code className="path-code mt-2" style={{ display: 'block', fontSize: '13px' }}>{store}</code>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', position: 'relative', zIndex: 1 }}>
+          <div className="flex-row" style={{ position: 'relative', zIndex: 1 }}>
             <span className="skill-count">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -252,7 +285,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
         {storeExpanded && (
           <div className="store-card-content">
             {editingStore ? (
-              <div className="inline-form" style={{ marginTop: 'var(--space-3)' }}>
+              <div className="inline-form mt-3">
                 <input
                   type="text"
                   value={editStorePath}
@@ -277,7 +310,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
             )}
             
             {allSkills.length > 0 && (
-              <div className="tag-list" style={{ marginTop: 'var(--space-4)' }}>
+              <div className="tag-list mt-4">
                 {allSkills.map((skill) => (
                   <button
                     key={skill}
@@ -296,9 +329,9 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
 
       {/* Section 2: Target Directories - Main Feature */}
       <section className="section">
-        <div className="section-header" style={{ cursor: 'pointer' }} onClick={() => setTargetsExpanded(!targetsExpanded)}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div className="section-header collapsible-header" role="button" tabIndex={0} onClick={() => setTargetsExpanded(!targetsExpanded)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTargetsExpanded(!targetsExpanded); } }}>
+          <div className="flex-1">
+            <div className="flex-row">
               <h1 className="section-title">工具目录</h1>
               <svg 
                 width="20" 
@@ -355,7 +388,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
         </div>
 
         {targetsExpanded && (
-          <div className="target-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div className="target-list flex-col">
             {targets.length === 0 && (
               <div className="empty-state">
                 <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -460,7 +493,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
                 <div className="target-card-body">
                   <div className="skill-tags">
                     {currentSkills.length === 0 ? (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>暂无技能</span>
+                      <span className="clickable" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>暂无技能</span>
                     ) : (
                       currentSkills.map((skill) => (
                         <button
@@ -484,9 +517,9 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
 
       {/* Section 3: Themes - Management */}
       <section className="section">
-        <div className="section-header" style={{ cursor: 'pointer' }} onClick={() => setThemesExpanded(!themesExpanded)}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div className="section-header collapsible-header" role="button" tabIndex={0} onClick={() => setThemesExpanded(!themesExpanded)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setThemesExpanded(!themesExpanded); } }}>
+          <div className="flex-1">
+            <div className="flex-row">
               <h2 className="section-title">技能组合</h2>
               <svg 
                 width="20" 
@@ -540,11 +573,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
         </div>
 
         {themesExpanded && (
-          <div className="theme-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: 'var(--space-4)'
-          }}>
+          <div className="theme-grid">
             {/* 全量主题始终显示在第一位 */}
             {(() => {
               const isFullTheme = true;
@@ -562,7 +591,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
                     <div className="theme-card-meta">
                       <span>{displaySkills.length} 个技能</span>
                     </div>
-                    <div className="tag-list tag-list-compact" style={{ marginTop: 'var(--space-3)' }}>
+                    <div className="tag-list tag-list-compact mt-3">
                       {displaySkills.slice(0, 4).map((skill) => (
                         <span key={skill} className="tag">
                           {skill}
@@ -570,8 +599,7 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
                       ))}
                       {displaySkills.length > 4 && (
                         <button 
-                          className="tag" 
-                          style={{ cursor: 'pointer' }}
+                          className="tag clickable" 
                           onClick={() => setViewingSkillList({ title: '全量', skills: displaySkills })}
                         >
                           +{displaySkills.length - 4}
@@ -667,18 +695,17 @@ const [viewingSkillList, setViewingSkillList] = useState<{ title: string; skills
                   <div className="theme-card-meta">
                     <span>{skills.length} 个技能</span>
                   </div>
-                  <div className="tag-list tag-list-compact" style={{ marginTop: 'var(--space-3)' }}>
+                  <div className="tag-list tag-list-compact mt-3">
                     {skills.slice(0, 4).map((skill) => (
                       <span key={skill} className="tag">
                         {skill}
                       </span>
                     ))}
                     {skills.length > 4 && (
-                      <button 
-                        className="tag" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setViewingSkillList({ title: name, skills })}
-                      >
+                        <button 
+                          className="tag clickable" 
+                          onClick={() => setViewingSkillList({ title: name, skills })}
+                        >
                         +{skills.length - 4}
                       </button>
                     )}

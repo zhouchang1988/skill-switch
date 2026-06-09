@@ -2,7 +2,7 @@ import type { ConfigResponse, TargetConfig, SwitchResult, StatusResult, SkillMet
 
 const BASE = "/api";
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit & { signal?: AbortSignal }): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
@@ -61,6 +61,12 @@ export const api = {
     request<DirBrowseResult>("/browse", {
       method: "POST",
       body: JSON.stringify({ path }),
+    }),
+
+  scanStore: (store: string) =>
+    request<{ skills: string[] }>("/scan", {
+      method: "POST",
+      body: JSON.stringify({ store }),
     }),
 
   init: (store: string, targets: TargetConfig[]) =>
